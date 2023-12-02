@@ -1,5 +1,3 @@
-import sys
-sys.path.append('D:/Math PhD/PINNs code and papers/PINNs/HeatEquation')   
 import numpy as np
 import os
 import random
@@ -100,10 +98,9 @@ E = tf.math.sqrt(tf.math.square(Z - W))
 
 error_plot = go.Figure(data=[go.Surface(z=E, x=X, y=T)])
 
-error_plot.update_layout(title='Error plot')
+error_plot.update_layout(title='Pointwise error')
 
 error_plot.update_layout(
-    title='L2-Error',
     scene = dict(xaxis = dict(title='space', range=[-1,1],),
                  yaxis = dict(title='time', range=[0,1],),
                  zaxis = dict(range=[0,1],)))

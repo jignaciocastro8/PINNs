@@ -1,4 +1,6 @@
 import tensorflow as tf
+import sys
+sys.path.append('D:/Math PhD/PINNs code and papers/PINNs/HeatEquation')   
 from Network import Network
 from tqdm import tqdm
 import numpy as np
@@ -7,7 +9,7 @@ class HeatModel:
     # 1D Heat equation PINN-solver. It contains its own nn.
     def __init__(self):
 
-        self.model = Network([2,500,500,500,1]).build()
+        self.model = Network([2,50,50,50,50,1]).build()
     
         self.mu = 0.001
 
@@ -17,6 +19,7 @@ class HeatModel:
     
     ##################### LOSS METHODS ###########################
 
+    #@tf.function
     def pde_loss(self, data):
 
         # Error given by the PDE over data.
@@ -40,6 +43,7 @@ class HeatModel:
         l3 = tf.reduce_mean(tf.math.square(self.model(data_init) - self.init_condition(data_init)))
         return l1 + l2 + l3
     
+    #@tf.function
     def total_loss(self, data_int, data_init, data_left, data_right):
     
         #self.boundary_loss(data_init, data_left, data_right) + 
@@ -53,19 +57,18 @@ class HeatModel:
             target = self.total_loss(data_int, data_init, data_left, data_right)
         return target, tape.gradient(target, self.model.trainable_variables)
 
+    #@tf.function
     def fit_SGD(self, data_int, data_init, data_left, data_right):
         # Random mini-batch
         n = data_int.shape[0]
         l = []
         optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-        b = 100
-        for _ in tqdm(tf.range(5000)):
+        b = 10
+        for _ in tqdm(range(4000)):
             i = np.random.randint(n - b)
             target, gradients = self.gradients(data_int[i:i+b], data_init[i:i+b], data_left[i:i+b], data_right[i:i+b])
             optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
             l.append(target)
-            if target < 1e-4:
-                break
         return l
     
     def fit(self, data_int, data_init, data_left, data_right):
