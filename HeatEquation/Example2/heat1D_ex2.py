@@ -87,7 +87,7 @@ fig.show()
 Z = model.model(grid).numpy().reshape((len(T), len(X)))
 fig = go.Figure(data=[go.Surface(z=Z, x=X, y=T)])
 fig.update_layout(
-    title='PINN solution',
+    title='PINN solution for 1D heat equation',
     scene = dict(xaxis = dict(title='space', nticks=4, range=[-1,1],),
                  yaxis = dict(title='time', nticks=4, range=[0,1])))
 fig.show()
