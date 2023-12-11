@@ -13,7 +13,8 @@ class BurgersModel:
         self.mu = mu
         self.learning_rate = learning_rate
         self.opti_iter = opti_iter
-        self.mini_batch = mini_batch 
+        self.mini_batch = mini_batch
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
 
     def init_condition(self, data):
         n = data.shape[0]
@@ -21,7 +22,6 @@ class BurgersModel:
     
     ##################### LOSS METHODS ###########################
 
-    #@tf.function
     def pde_loss(self, data):
 
         # Error given by the PDE over data.
@@ -45,39 +45,36 @@ class BurgersModel:
         l3 = tf.reduce_mean(tf.math.square(self.model(data_init) - self.init_condition(data_init)))
         return l1 + l2 + l3
     
-    #@tf.function
     def total_loss(self, data_int, data_init, data_left, data_right):
     
         #self.boundary_loss(data_init, data_left, data_right) + 
         return (1-self.mu) * self.boundary_loss(data_init, data_left, data_right) + self.mu*self.pde_loss(data_int)
     ##################### TRAINING METHODS ###########################
     
-    @tf.function
     def gradients(self, data_int, data_init, data_left, data_right):
         with tf.GradientTape() as tape:
             tape.watch(self.model.trainable_variables)
             target = self.total_loss(data_int, data_init, data_left, data_right)
         return target, tape.gradient(target, self.model.trainable_variables)
 
-    #@tf.function
+    @tf.function
     def fit_Adam(self, data_int, data_init, data_left, data_right):
         # Performs stochastic descent
         n = data_int.shape[0]
-        l = []
-        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+        l = tf.TensorArray(tf.float32, size=0, dynamic_size=True)
         b = self.mini_batch
-        for _ in tqdm(range(self.opti_iter)):
+        for _ in tf.range(self.opti_iter):
             i = np.random.randint(n - b)
             target, gradients = self.gradients(data_int[i:i+b], data_init[i:i+b], data_left[i:i+b], data_right[i:i+b])
-            optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-            l.append(target)
-        return l
+            self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+            l = l.write(_, target)
+        return l.stack()
     
     def fit(self, data_int, data_init, data_left, data_right):
         l = []
-        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         for epoch in tqdm(tf.range(self.learning_rate)):
             target, gradients = self.gradients(data_int, data_init, data_left, data_right)
-            optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+            self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
             l.append(target)
         return l
+

@@ -1,10 +1,12 @@
 import numpy as np
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' 
 import random
 import plotly.graph_objects as go
 import plotly.express as px
 import tensorflow as tf
 from HeatModelEx2 import HeatModel
+import time
 
 seed = 2727
 os.environ['PYTHONHASHSEED']=str(seed)
@@ -12,7 +14,6 @@ os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
 random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
-
 
 
 def true_solution(tx):
@@ -35,14 +36,38 @@ true_solution.show()
 
 
 
-model = HeatModel()
+############################### hyperparameters ###############################
+
+# Model architecture
+layers = [2,50,50,50,50,1]
+# PDE loss weight
+mu = 0.001
+# Learning rate
+learning_rate = 0.001
+# Amount of data points
+n = 600
+# Mini batch
+mini_batch = 10
+# (Stochastic) gradient descent iterations
+opti_iter = 4000
+
+###############################################################################
+
+
+model = HeatModel(architecture=layers,
+                   mu=mu, 
+                   learning_rate=learning_rate,
+                   opti_iter=opti_iter,
+                   mini_batch=mini_batch)
+
+model.model.summary()
 
 Z = model.model(grid).numpy().reshape((len(T),len(X)))
 
 pinn_plot = go.Figure(data=[go.Surface(z=Z, x=X, y=T)])
 
 pinn_plot.update_layout(
-    title='PINN plot',
+    title='PINN before fitting plot',
     scene = dict(xaxis = dict(title='space', nticks=4, range=[-1,1],),
                  yaxis = dict(title='time', nticks=4, range=[0,1])))
 
@@ -71,7 +96,6 @@ data_right[..., 1] = 1
 data_right = tf.constant(data_right, dtype="float32")
 
 l = model.fit_SGD(data_int, data_init, data_left, data_right)
-
 
 fig = px.line(l, log_y=True)
 fig.update_layout(
